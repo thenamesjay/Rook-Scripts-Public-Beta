@@ -1,6 +1,8 @@
 RookScripts
 Made & Developed by Jay and Hedges.
 
+NOTE: This is the PUBLIC BETA! Things may be buggy / unfinished!
+
 Repository for RookScripts, a Garry's Mod GLua Multihack Script for Hacking, Cheats, Aimbot/ESP, and MUCH more!
 
 In Memory of CODE BLUE
