@@ -478,10 +478,10 @@ hook.Add( "Think", "Triggerbot", function()
     if GetConVarNumber(rook.."TriggerBot") == 1 and ( EntTrace:IsPlayer() )  then
 		if GetConVarNumber(rook.."TriggerBot_Ignore_Friends") == 1 and v:IsPlayer() and v:GetFriendStatus() == "none" or GetConVarNumber(rook.."TriggerBot_Ignore_Friends") == 0 then 
 			if GetConVarNumber(rook.."TriggerBot_Ignore_Team") == 1 and v:IsPlayer() and v:Team() ~= ply:Team() or GetConVarNumber(rook.."TriggerBot_Ignore_Team") == 0 then 
-				if shooting then
+				if shooting and ( EntTrace:IsPlayer() ) then
 					RunConsoleCommand( "-attack" ) 
 					shooting = false
-				else
+				elseif !shooting and ( EntTrace:IsPlayer() ) then
 					RunConsoleCommand( "+attack" ) 
 					shooting = true
 				end
@@ -489,13 +489,7 @@ hook.Add( "Think", "Triggerbot", function()
 		end
 	end
 end)
-hook.Add( "Think", "TriggerbotCheck", function()
-	local EntTrace = ply:GetEyeTrace().Entity
-	if GetConVarNumber(rook.."TriggerBot") == 0 or shooting then
-		RunConsoleCommand( "-attack" ) 
-		shooting = false
-	end
-end)
+
 -- Custom Crosshair --
 
 hook.Add( "HUDPaint", "CrossHair", function()
