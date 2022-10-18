@@ -246,9 +246,9 @@ CreateClientConVar(rook.."Aimbot_Ignore_Friends", 0, true, false)
 CreateClientConVar(rook.."Aimbot_Ignore_Team", 0, true, false)
 CreateClientConVar(rook.."Aimbot_Ignore_Through_Walls", 0, true, false)
 CreateClientConVar(rook.."AdminList", 0, true, false)
-CreateClientConVar(rook.."TriggerBot", 0, true, false)
-CreateClientConVar(rook.."TriggerBot_Ignore_Friends", 0, true, false)
-CreateClientConVar(rook.."TriggerBot_Ignore_Team", 0, true, false)
+----CreateClientConVar(rook.."TriggerBot", 0, true, false)
+----CreateClientConVar(rook.."TriggerBot_Ignore_Friends", 0, true, false)
+----CreateClientConVar(rook.."TriggerBot_Ignore_Team", 0, true, false)
 CreateClientConVar(rook.."CrossHair", 0, true, false)
 CreateClientConVar(rook.."PlayerInfo", 0, true, false)
 CreateClientConVar(rook.."2DBoxESP", 0, true, false)
@@ -471,7 +471,7 @@ hook.Add( "Think", "ThinkAboutIt", function()
 	end
 end)
 	
--- Trigger Bot --
+--[[-- Trigger Bot --
 
 hook.Add( "Think", "Triggerbot", function()
     local EntTrace = ply:GetEyeTrace().Entity
@@ -488,7 +488,10 @@ hook.Add( "Think", "Triggerbot", function()
 			end
 		end
 	end
-end)
+	if GetConVarNumber(rook.."TriggerBot") == 0 then
+		RunConsoleCommand( "-attack" )
+	end
+end)]]
 
 -- Custom Crosshair --
 
@@ -1142,21 +1145,21 @@ local x = vgui.Create( "DImageButton", DP )
 	AimBoneSelector.OnSelect = function( self, index, value )
 		AimBoneType = ( index )
 	end
-	local Aimcheat5 = vgui.Create( "DCheckBoxLabel", panel3 )
-	Aimcheat5:SetPos( 195,10 )
-	Aimcheat5:SetText( "Trigger Bot" )
-	Aimcheat5:SetConVar( rook.."TriggerBot" )
-	Aimcheat5:SizeToContents()
-	local Aimcheat6 = vgui.Create( "DCheckBoxLabel", panel3 )
-	Aimcheat6:SetPos( 215,30 )
-	Aimcheat6:SetText( "Trigger Bot Ignore Friends" )
-	Aimcheat6:SetConVar( rook.."TriggerBot_Ignore_Friends" )
-	Aimcheat6:SizeToContents()
-	local Aimcheat7 = vgui.Create( "DCheckBoxLabel", panel3 )
-	Aimcheat7:SetPos( 215,50 )
-	Aimcheat7:SetText( "Trigger Bot Ignore Team" )
-	Aimcheat7:SetConVar( rook.."TriggerBot_Ignore_Team" )
-	Aimcheat7:SizeToContents()
+	--local Aimcheat5 = vgui.Create( "DCheckBoxLabel", panel3 )
+	--Aimcheat5:SetPos( 195,10 )
+	--Aimcheat5:SetText( "Trigger Bot" )
+	--Aimcheat5:SetConVar( rook.."TriggerBot" )
+	--Aimcheat5:SizeToContents()
+	--local Aimcheat6 = vgui.Create( "DCheckBoxLabel", panel3 )
+	--Aimcheat6:SetPos( 215,30 )
+	--Aimcheat6:SetText( "Trigger Bot Ignore Friends" )
+	--Aimcheat6:SetConVar( rook.."TriggerBot_Ignore_Friends" )
+	--Aimcheat6:SizeToContents()
+	--local Aimcheat7 = vgui.Create( "DCheckBoxLabel", panel3 )
+	--Aimcheat7:SetPos( 215,50 )
+	--Aimcheat7:SetText( "Trigger Bot Ignore Team" )
+	--Aimcheat7:SetConVar( rook.."TriggerBot_Ignore_Team" )
+	--Aimcheat7:SizeToContents()
 	
 	local binder = vgui.Create( "DBinder", panel3 )
 	binder:SetSize( 560, 35 )
