@@ -284,7 +284,7 @@ local espcolor_r = CreateClientConVar("ESPColor_R", 0, true, false)
 local espcolor_g = CreateClientConVar("ESPColor_G", 0, true, false)
 local espcolor_b = CreateClientConVar("ESPColor_B", 0, true, false)
 local espcolor_a = CreateClientConVar("ESPColor_A", 0, true, false)
-local renderdist = CreateClientConVar("RenderDistance", 0, true, false)
+local renderdist = CreateClientConVar("RenderDistance", 5000, true, false)
 
 -- //Hacks\\ --
 -- Use: Creating the hacks for the menu to use. --
@@ -327,7 +327,7 @@ hook.Add('HUDPaint','SkeletonEsp', function()
 		for k, v in pairs(player.GetAll()) do
 			local plydistance = math.Round((ply:GetPos():Distance( v:GetPos())))
 			if plydistance < renderdist:GetInt() then
-				if v != LocalPlayer() and UtilityCheck(v) == true and v:GetBonePosition( v:LookupBone('ValveBiped.Bip01_Head1') ) ~= nil then
+				if v != LocalPlayer() and UtilityCheck(v) == true and v:LookupBone('ValveBiped.Bip01_Head1') != nil then
 					if ESPColorStyle == 1 then
 						surface.SetDrawColor(espcolor_r:GetInt(), espcolor_g:GetInt(), espcolor_b:GetInt(), espcolor_a:GetInt())
 					else
@@ -361,14 +361,14 @@ hook.Add('HUDPaint','SkeletonEsp', function()
 			end
 		end
 	end
-end)
+end) 
 
 -- EyeTracker --
 
 hook.Add('HUDPaint','EyeTracker', function()
 	if GetConVarNumber(rook.."EyeTracker") == 1 then
 		for k, v in pairs(player.GetAll()) do
-			if v:GetBonePosition( v:LookupBone('ValveBiped.Bip01_Head1') ) ~= nil then
+			if v:LookupBone('ValveBiped.Bip01_Head1') != nil then
 				local plydistance = math.Round((ply:GetPos():Distance( v:GetPos())))
 				if plydistance < renderdist:GetInt() then
 					if v != LocalPlayer() then
@@ -392,7 +392,7 @@ end)
 hook.Add('HUDPaint','Tracer', function()
 	if GetConVarNumber(rook.."Tracer") == 1 then
 		for k, v in pairs(player.GetAll()) do
-			if v:GetBonePosition( v:LookupBone('ValveBiped.Bip01_Head1') ) ~= nil then
+			if v:LookupBone('ValveBiped.Bip01_Head1') != nil then
 				local plydistance = math.Round((ply:GetPos():Distance( v:GetPos())))
 				if plydistance < renderdist:GetInt() then
 					if v != LocalPlayer() then
@@ -479,12 +479,12 @@ hook.Add( "Think", "Triggerbot", function()
 		if GetConVarNumber(rook.."TriggerBot_Ignore_Friends") == 1 and v:IsPlayer() and v:GetFriendStatus() == "none" or GetConVarNumber(rook.."TriggerBot_Ignore_Friends") == 0 then 
 			if GetConVarNumber(rook.."TriggerBot_Ignore_Team") == 1 and v:IsPlayer() and v:Team() ~= ply:Team() or GetConVarNumber(rook.."TriggerBot_Ignore_Team") == 0 then 
 				if EntTrace:Alive() and EntTrace:IsPlayer() or EntTrace:IsNPC() then
-					if shooting == false then
-						RunConsoleCommand( "+attack" ) 
-						shooting = true
-					else
+					if shooting == true then
 						RunConsoleCommand( "-attack" ) 
 						shooting = false
+					else
+						RunConsoleCommand( "+attack" ) 
+						shooting = true
 					end
 				end
 			end
@@ -750,13 +750,16 @@ end)
 StaffCheck = {}
 hook.Add("HUDPaint", "AdminList", function()
 	if GetConVarNumber(rook.."AdminList") == 1 and GetConVarNumber(rook.."HUD") == 1 then
+		local indent = 0
 		for k, v in pairs(player.GetAll()) do
 			if v:IsAdmin()  or string.find(v:GetUserGroup(), "mod") or string.find(v:GetUserGroup(), "admin") or string.find(v:GetUserGroup(), "staff") then
-				draw.SimpleTextOutlined("["..v:GetUserGroup().."] "..v:GetName(), "BigTextForHUD", 0, 325 + ( k * 20 ), Color(255, 102, 102), TEXT_ALIGN_LEFT, 1, 1, Color( 0, 0, 0 ) )
+				draw.SimpleTextOutlined("["..v:GetUserGroup().."] "..v:GetName(), "BigTextForHUD", 0, 325+indent, Color(255, 102, 102), TEXT_ALIGN_LEFT, 1, 1, Color( 0, 0, 0 ) )
+				indent = indent +30
 			end
 		end
 	end
 end)
+
 
 -- Entity ESP --
 
@@ -887,14 +890,10 @@ concommand.Add( "Rook_Menu", function()
     local sheet = vgui.Create( "DColumnSheet", DP )
     sheet:Dock( FILL )
 	
-local x = vgui.Create( "DButton", DP )
-	x:SetText( "X" )
-	x:SetTextColor( Color( 255, 255, 255 ) )
-	x:SetPos( 655, 0 )
-	x:SetSize( 35, 35 )
-	x.Paint = function( self, w, h )
-		draw.RoundedBox( 0, 0, 0, w, h, Color( 0, 0, 0, 0 ) ) 
-	end
+local x = vgui.Create( "DImageButton", DP )
+	x:SetPos( 660, 2 )
+	x:SetSize( 20, 20 )
+	x:SetImage( "icon16/cancel.png" )
 	x.DoClick = function()
 		DP:Close()
 	end	
@@ -904,17 +903,17 @@ local x = vgui.Create( "DButton", DP )
     panel1.Paint = function( self, w, h ) 
     panel1.Paint = function( self, w, h )
 		DrawBlur(self, 3)
-		draw.RoundedBox( 0, 0, 0, w, h, Color( 0, 0, 0, 155 ) )
-	end 
+			draw.RoundedBox( 0, 0, 0, w, h, Color( 0, 0, 0, 155 ) )
+		end 
 	end
-    sheet:AddSheet( "Info", panel1 )
+    sheet:AddSheet( "Info", panel1, "icon16/application_osx_terminal.png" )
 	
 	local mainmsg = vgui.Create( "HTML" ) 
 	mainmsg:SetParent( panel1 )
 	mainmsg:SetPos( 0, 0 )
 	mainmsg:SetSize( 560, 200 )
 	mainmsg:SizeToContents()
-	mainmsg:OpenURL( "https://i.imgur.com/ljlYLV3.png" )
+	mainmsg:OpenURL( "https://i.imgur.com/yzrVHYZ.png" )
 	
     local panel2 = vgui.Create( "DPanel", sheet )
     panel2:Dock( FILL )
@@ -922,7 +921,7 @@ local x = vgui.Create( "DButton", DP )
 		DrawBlur(self, 3)
 		draw.RoundedBox( 0, 0, 0, w, h, Color( 0, 0, 0, 155 ) )
 	end
-    sheet:AddSheet( "Visual", panel2 )
+    sheet:AddSheet( "Visual", panel2, "icon16/eye.png" )
 	
     local panel3 = vgui.Create( "DPanel", sheet )
     panel3:Dock( FILL )
@@ -930,7 +929,7 @@ local x = vgui.Create( "DButton", DP )
 		DrawBlur(self, 3)
 		draw.RoundedBox( 0, 0, 0, w, h, Color( 0, 0, 0, 155 ) )
 	end
-    sheet:AddSheet( "Aim", panel3 )
+    sheet:AddSheet( "Aim", panel3, "icon16/user_go.png")
 	
     local panel4 = vgui.Create( "DPanel", sheet )
     panel4:Dock( FILL )
@@ -938,7 +937,7 @@ local x = vgui.Create( "DButton", DP )
 		DrawBlur(self, 3)
 		draw.RoundedBox( 0, 0, 0, w, h, Color( 0, 0, 0, 155 ) )
 	end
-    sheet:AddSheet( "Misc", panel4 )
+    sheet:AddSheet( "Misc", panel4, "icon16/joystick.png" )
 	
     local panel5 = vgui.Create( "DPanel", sheet )
     panel5:Dock( FILL )
@@ -946,7 +945,7 @@ local x = vgui.Create( "DButton", DP )
 		DrawBlur(self, 3)
 		draw.RoundedBox( 0, 0, 0, w, h, Color( 0, 0, 0, 155 ) )
 	end
-    sheet:AddSheet( "Chat", panel5 )
+    sheet:AddSheet( "Chat", panel5, "icon16/comment.png" )
 	
     local panel6 = vgui.Create( "DPanel", sheet )
     panel6:Dock( FILL )
@@ -954,7 +953,7 @@ local x = vgui.Create( "DButton", DP )
 		DrawBlur(self, 3)
 		draw.RoundedBox( 0, 0, 0, w, h, Color( 0, 0, 0, 155 ) )
 	end
-    sheet:AddSheet( "Gamemode", panel6 )
+    sheet:AddSheet( "Gamemode", panel6, "icon16/controller.png" )
 	
     local panel7 = vgui.Create( "DPanel", sheet )
     panel7:Dock( FILL )
@@ -962,33 +961,51 @@ local x = vgui.Create( "DButton", DP )
 		DrawBlur(self, 3)
 		draw.RoundedBox( 0, 0, 0, w, h, Color( 0, 0, 0, 155 ) )
 	end
-    sheet:AddSheet( "Customization", panel7 )
+    sheet:AddSheet( "Customize", panel7, "icon16/cog.png" )
 
 	local UsefulButton1 = vgui.Create( "DButton", panel1 )
 	UsefulButton1:SetText( "Jay's Steam Profile" )
-	UsefulButton1:SetTextColor( Color( 0, 0, 0 ) )
+	UsefulButton1:SetTextColor( Color( 255, 255, 255 ) )
 	UsefulButton1:SetSize( 190, 42 )
 	UsefulButton1:SetPos( 0,200 )
+	UsefulButton1.Paint = function( self, w, h )
+		draw.RoundedBox( 0, 0, 0, w, h, Color( 150, 150, 150, 25 ) ) 
+		if UsefulButton1:IsHovered() then 
+			draw.RoundedBox( 0, 0, 0, w, h, Color( 200, 200, 200, 35 ) ) 
+		end
+	end
 	UsefulButton1.DoClick = function()
 		gui.OpenURL( "https://steamcommunity.com/id/fcssensai/" )
 	end
 
 	local UsefulButton2 = vgui.Create( "DButton", panel1 )
-	UsefulButton2:SetText( "Hedges' Steam Profile" )
-	UsefulButton2:SetTextColor( Color( 0, 0, 0 ) )
-	UsefulButton2:SetSize( 190, 42 )
+	UsefulButton2:SetText( "Inco Dev Group" )
+	UsefulButton2:SetTextColor( Color( 255, 255, 255 ) )
+	UsefulButton2:SetSize( 185, 42 )
 	UsefulButton2:SetPos( 190, 200 )
+	UsefulButton2.Paint = function( self, w, h )
+		draw.RoundedBox( 0, 0, 0, w, h, Color( 150, 150, 150, 25 ) ) 
+		if UsefulButton2:IsHovered() then 
+			draw.RoundedBox( 0, 0, 0, w, h, Color( 200, 200, 200, 35 ) ) 
+		end
+	end
 	UsefulButton2.DoClick = function()
-		gui.OpenURL( "https://steamcommunity.com/id/Hedgess/" )
+		gui.OpenURL( "https://www.incodg.xyz/" )
 	end
 
 	local UsefulButton3 = vgui.Create( "DButton", panel1 )
-	UsefulButton3:SetText( "Rook Scripts Discord" )
-	UsefulButton3:SetTextColor( Color( 0, 0, 0 ) )
+	UsefulButton3:SetText( "Hedges' Steam Profile" )
+	UsefulButton3:SetTextColor( Color( 255, 255, 255 ) )
 	UsefulButton3:SetSize( 190, 42 )
 	UsefulButton3:SetPos( 375, 200 )
+	UsefulButton3.Paint = function( self, w, h )
+		draw.RoundedBox( 0, 0, 0, w, h, Color( 150, 150, 150, 25 ) ) 
+		if UsefulButton3:IsHovered() then 
+			draw.RoundedBox( 0, 0, 0, w, h, Color( 200, 200, 200, 35 ) ) 
+		end
+	end
 	UsefulButton3.DoClick = function()
-		gui.OpenURL( "https://img.freepik.com/free-vector/abstract-coming-soon-halftone-style-background-design_1017-27282.jpg?w=2000" )
+		gui.OpenURL( "https://steamcommunity.com/id/Hedgess/" )
 	end
 	
 	local Visualcheat1 = vgui.Create( "DCheckBoxLabel", panel2 )
@@ -1093,29 +1110,29 @@ local x = vgui.Create( "DButton", DP )
     end
 	
 	local Aimcheat1 = vgui.Create( "DCheckBoxLabel", panel3 )
-	Aimcheat1:SetPos( 10,10 )
+	Aimcheat1:SetPos( 10,40 )
 	Aimcheat1:SetText( "Aimbot" )
 	Aimcheat1:SetConVar( rook.."Aimbot" )
 	Aimcheat1:SizeToContents()
 	local Aimcheat2 = vgui.Create( "DCheckBoxLabel", panel3 )
-	Aimcheat2:SetPos( 30,30 )
+	Aimcheat2:SetPos( 30,60 )
 	Aimcheat2:SetText( "Aimbot Ignore Friends" )
 	Aimcheat2:SetConVar( rook.."Aimbot_Ignore_Friends" )
 	Aimcheat2:SizeToContents()
 	local Aimcheat3 = vgui.Create( "DCheckBoxLabel", panel3 )
-	Aimcheat3:SetPos( 30,50 )
+	Aimcheat3:SetPos( 30,80 )
 	Aimcheat3:SetText( "Aimbot Ignore Team" )
 	Aimcheat3:SetConVar( rook.."Aimbot_Ignore_Team" )
 	Aimcheat3:SizeToContents()
 	local Aimcheat4 = vgui.Create( "DCheckBoxLabel", panel3 )
-	Aimcheat4:SetPos( 10,70 )
+	Aimcheat4:SetPos( 10,100 )
 	Aimcheat4:SetText( "FOV Aimbot" )
 	Aimcheat4:SetConVar( rook.."FOVAimbot" )
 	Aimcheat4:SizeToContents()
 	local AimBoneSelector = vgui.Create( "DComboBox", panel3 )
-	AimBoneSelector:SetPos( 10, 90 )
+	AimBoneSelector:SetPos( 10, 10 )
 	AimBoneSelector:SetSize( 150, 20 )
-	AimBoneSelector:SetValue( "Bone Selector" )
+	AimBoneSelector:SetValue( "Aimbot Bone Selector" )
 	AimBoneSelector:AddChoice( "Head" )
 	AimBoneSelector:AddChoice( "Neck" )
 	AimBoneSelector:AddChoice( "Upper Body" )
