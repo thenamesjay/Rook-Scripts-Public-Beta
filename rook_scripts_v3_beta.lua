@@ -106,7 +106,7 @@ MsgC (Color( 220, 220, 220 ), [[
 .||.  '|'  '|..|'  '|..|' .||. ||.    |'....|'   '|...' .||.    .||.  ||...'   '|.' |'..|' 
                                                                       ||                   
                                                                      ''''                  
-Made & Developed by Jay and Dugbuzz.
+Made & Developed by Jay.
 	  
 
 	  
@@ -995,7 +995,7 @@ local x = vgui.Create( "DImageButton", DP )
 	end
 
 	local UsefulButton3 = vgui.Create( "DButton", panel1 )
-	UsefulButton3:SetText( "Hedges' Steam Profile" )
+	UsefulButton3:SetText( "IncoDG Discord" )
 	UsefulButton3:SetTextColor( Color( 255, 255, 255 ) )
 	UsefulButton3:SetSize( 190, 42 )
 	UsefulButton3:SetPos( 375, 200 )
@@ -1006,7 +1006,7 @@ local x = vgui.Create( "DImageButton", DP )
 		end
 	end
 	UsefulButton3.DoClick = function()
-		gui.OpenURL( "https://steamcommunity.com/id/Hedgess/" )
+		gui.OpenURL( "https://discord.gg/4HPjZHfUxn" )
 	end
 	
 	local Visualcheat1 = vgui.Create( "DCheckBoxLabel", panel2 )
