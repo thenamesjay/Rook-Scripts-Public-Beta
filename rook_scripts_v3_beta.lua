@@ -9,12 +9,30 @@ local ESPColorStyle = 1
 local AimKey = 12
 local AimBone = ("ValveBiped.Bip01_Head1")
 local AimBoneType = 1
+OtherPlayers = OtherPlayers or {}
+NoShootGuys = NoShootGuys or {}
+EntsToShow = EntsToShow or {}
+OtherEnts = OtherEnts or {}
 local function UtilityCheck(v)
     if v != ply and v:Alive() and v:IsValid() then
         return true
     else
         return false
     end
+end
+local function PermissionCheck(v)
+    if v:IsAdmin()  or string.find(v:GetUserGroup(), "mod") or string.find(v:GetUserGroup(), "admin") or string.find(v:GetUserGroup(), "staff") then
+        return true
+    else
+        return false
+    end
+end
+function GhostCheck(v)
+	if not IsValid(v) or v:GetNoDraw() or v:GetRenderMode() == RENDERMODE_NONE then
+		return true
+	else
+		return false
+	end
 end
 RookSpamMessages = {}
 RookSpamMessages[1] = "Rook Scripts --> steamcommunity.com/sharedfiles/filedetails/?id=1100714215"
@@ -132,7 +150,6 @@ Though we didn't see eye to eye, I applaud the work you have done for this commu
 ]])
 chat.AddText(Color(0,0,0),"[RookScripts]",Color(0,255,0)," Initialized Successfully.")
 chat.AddText(Color(0,0,0),"[RookScripts]",Color(200,200,200)," Type",Color(0,200,200)," rook_menu",Color(200,200,200)," to open the hack menu.")
-chat.AddText(Color(0,0,0),"[RookScripts]",Color(200,200,200)," Aimbot is bound to",Color(0,200,200)," B",Color(200,200,200),".")
 
 rook = "Rook_"
 
@@ -243,12 +260,15 @@ end
 CreateClientConVar(rook.."Aimbot", 0, true, false)
 CreateClientConVar(rook.."FOVAimbot", 0, true, false)
 CreateClientConVar(rook.."Aimbot_Ignore_Friends", 0, true, false)
+CreateClientConVar(rook.."Aimbot_Ignore_Staff", 0, true, false)
 CreateClientConVar(rook.."Aimbot_Ignore_Team", 0, true, false)
 CreateClientConVar(rook.."Aimbot_Ignore_Through_Walls", 0, true, false)
+CreateClientConVar(rook.."Aimbot_Ignore_Ghosts", 0, true, false)
+CreateClientConVar(rook.."Aimbot_Whitelist", 0, true, false)
 CreateClientConVar(rook.."AdminList", 0, true, false)
-----CreateClientConVar(rook.."TriggerBot", 0, true, false)
-----CreateClientConVar(rook.."TriggerBot_Ignore_Friends", 0, true, false)
-----CreateClientConVar(rook.."TriggerBot_Ignore_Team", 0, true, false)
+CreateClientConVar(rook.."TriggerBot", 0, true, false)
+CreateClientConVar(rook.."TriggerBot_Ignore_Friends", 0, true, false)
+CreateClientConVar(rook.."TriggerBot_Ignore_Team", 0, true, false)
 CreateClientConVar(rook.."CrossHair", 0, true, false)
 CreateClientConVar(rook.."PlayerInfo", 0, true, false)
 CreateClientConVar(rook.."2DBoxESP", 0, true, false)
@@ -272,6 +292,8 @@ CreateClientConVar(rook.."ChatSpam", 0, true, false)
 CreateClientConVar(rook.."ChatSpam_DarkRP", 0, true, false)
 CreateClientConVar(rook.."ChatSpam_Admin", 0, true, false)
 CreateClientConVar(rook.."Murder", 0, true, false)
+CreateClientConVar(rook.."TTT", 0, true, false)
+--CreateClientConVar(rook.."NameChanger", 0, true, false)
 local fovslider = CreateClientConVar("FOVSlider", 0, true, false)
 local crosshair_r = CreateClientConVar("Crosshair_R", 0, true, false)
 local crosshair_g = CreateClientConVar("Crosshair_G", 0, true, false)
@@ -327,11 +349,21 @@ hook.Add('HUDPaint','SkeletonEsp', function()
 		for k, v in pairs(player.GetAll()) do
 			local plydistance = math.Round((ply:GetPos():Distance( v:GetPos())))
 			if plydistance < renderdist:GetInt() then
-				if v != LocalPlayer() and UtilityCheck(v) == true and v:LookupBone('ValveBiped.Bip01_Head1') != nil then
+				if v != LocalPlayer() and UtilityCheck(v) == true and v:LookupBone('ValveBiped.Bip01_Head1') != nil and v:LookupBone('ValveBiped.Bip01_R_UpperArm') != nil then
 					if ESPColorStyle == 1 then
 						surface.SetDrawColor(espcolor_r:GetInt(), espcolor_g:GetInt(), espcolor_b:GetInt(), espcolor_a:GetInt())
-					else
+					elseif ESPColorStyle == 2 then
 						surface.SetDrawColor(team.GetColor(v:Team()))
+					else
+						local time = CurTime()
+						local speed = 1
+						local offset = 0
+						local lightness = 255
+						local base_value = time * speed + offset
+						local r = ( 0.5 * (math.sin(base_value - 2)	+ 1) ) * lightness
+						local g = ( 0.5 * (math.sin(base_value + 2)	+ 1) ) * lightness
+						local b = ( 0.5 * (math.sin(base_value)		+ 1) ) * lightness
+						surface.SetDrawColor(r, g, b)
 					end
 					rshoulder = v:GetBonePosition( v:LookupBone('ValveBiped.Bip01_R_UpperArm') ):ToScreen()
 					lshoulder = v:GetBonePosition( v:LookupBone('ValveBiped.Bip01_L_UpperArm') ):ToScreen()
@@ -374,8 +406,18 @@ hook.Add('HUDPaint','EyeTracker', function()
 					if v != LocalPlayer() then
 						if ESPColorStyle == 1 then
 							surface.SetDrawColor(espcolor_r:GetInt(), espcolor_g:GetInt(), espcolor_b:GetInt(), espcolor_a:GetInt())
-						else
+						elseif ESPColorStyle == 2 then
 							surface.SetDrawColor(team.GetColor(v:Team()))
+						else
+							local time = CurTime()
+							local speed = 1
+							local offset = 0
+							local lightness = 255
+							local base_value = time * speed + offset
+							local r = ( 0.5 * (math.sin(base_value - 2)	+ 1) ) * lightness
+							local g = ( 0.5 * (math.sin(base_value + 2)	+ 1) ) * lightness
+							local b = ( 0.5 * (math.sin(base_value)		+ 1) ) * lightness
+							surface.SetDrawColor(r, g, b)
 						end
 						pstart = v:GetBonePosition( v:LookupBone('ValveBiped.Bip01_Head1') ):ToScreen()
 						pend = util.TraceLine(util.GetPlayerTrace(v)).HitPos:ToScreen()
@@ -398,10 +440,20 @@ hook.Add('HUDPaint','Tracer', function()
 					if v != LocalPlayer() then
 						if ESPColorStyle == 1 then
 							surface.SetDrawColor(espcolor_r:GetInt(), espcolor_g:GetInt(), espcolor_b:GetInt(), espcolor_a:GetInt())
-						else
+						elseif ESPColorStyle == 2 then
 							surface.SetDrawColor(team.GetColor(v:Team()))
+						else
+							local time = CurTime()
+							local speed = 1
+							local offset = 0
+							local lightness = 255
+							local base_value = time * speed + offset
+							local r = ( 0.5 * (math.sin(base_value - 2)	+ 1) ) * lightness
+							local g = ( 0.5 * (math.sin(base_value + 2)	+ 1) ) * lightness
+							local b = ( 0.5 * (math.sin(base_value)		+ 1) ) * lightness
+							surface.SetDrawColor(r, g, b)
 						end
-						pstart = v:GetBonePosition( v:LookupBone('ValveBiped.Bip01_Head1') ):ToScreen()
+						pstart = v:GetPos():ToScreen()
 						pend = LocalPlayer():GetBonePosition( LocalPlayer():LookupBone('ValveBiped.Bip01_Pelvis') ):ToScreen()
 						surface.DrawLine(pstart.x,pstart.y,pend.x,pend.y)
 					end
@@ -411,87 +463,35 @@ hook.Add('HUDPaint','Tracer', function()
 	end
 end)
 
--- Aimbot --
+-- Trigger Bot --
 
-hook.Add( "Think", "ThinkAboutIt", function()
-	if AimBoneType == 1 then
-		AimBone = ("ValveBiped.Bip01_Head1")
-	end
-	if AimBoneType == 2 then
-		AimBone = ("ValveBiped.Bip01_Neck1")
-	end
-	if AimBoneType == 3 then
-		AimBone = ("ValveBiped.Bip01_Spine")
-	end
-	if AimBoneType == 4 then
-		AimBone = ("ValveBiped.Bip01_L_Forearm")
-	end
-	if AimBoneType == 5 then
-		AimBone = ("ValveBiped.Bip01_R_UpperArm")
-	end
-	if AimBoneType == 6 then
-		AimBone = ("ValveBiped.Bip01_Pelvis")
-	end
-	if AimBoneType == 7 then
-		AimBone = ("ValveBiped.Bip01_L_Calf")
-	end
-	if AimBoneType == 8 then
-		AimBone = ("ValveBiped.Bip01_R_Calf")
-	end
-	local Target = nil
-	local NearestTargetDist = 0
-    if GetConVarNumber(rook.."Aimbot") == 1 then
-		if input.IsButtonDown(AimKey) and ply:IsTyping() == false then
-			for k, v in pairs( player.GetAll() ) do
-			if UtilityCheck(v) == true then
-					local TargetDist = ( Vector( ply:GetPos() ):Distance( Vector( v:GetPos() ) ) )
-					if TargetDist > 0 and TargetDist < NearestTargetDist or NearestTargetDist == 0 then
-						if GetConVarNumber(rook.."Aimbot_Ignore_Friends") == 1 and v:IsPlayer() and v:GetFriendStatus() == "none" or GetConVarNumber(rook.."Aimbot_Ignore_Friends") == 0 then 
-							if GetConVarNumber(rook.."Aimbot_Ignore_Team") == 1 and v:IsPlayer() and v:Team() ~= ply:Team() or GetConVarNumber(rook.."Aimbot_Ignore_Team") == 0 then 
-								NearestTargetDist = TargetDist
-								if NearestTargetDist == TargetDist then
-									Target = v
-								end
-								if Target ~= nil then
-									if Target:LookupBone(AimBone) == nil then
-										local TargetBody = Target:GetPos() + Vector( 0, 0, 35 )
-										ply:SetEyeAngles((TargetBody - ply:GetShootPos()):Angle())
-									else 
-										local TargetHead = Target:LookupBone(AimBone)
-										local TargetHeadPos,TargetHeadAng = Target:GetBonePosition(TargetHead)
-										ply:SetEyeAngles((TargetHeadPos - ply:GetShootPos()):Angle())
-									end
-								end
-							end
-						end
-					end
-				end
+local shooting = false
+hook.Add("Think", "Triggerbot", function()
+    local ply = LocalPlayer()
+    local EntTrace = ply:GetEyeTrace()
+    if not EntTrace.Hit or not IsValid(EntTrace.Entity) then return end
+    local target = EntTrace.Entity
+
+    if GetConVarNumber(rook.."TriggerBot") == 1 and target:IsPlayer() then
+        if GetConVarNumber(rook.."TriggerBot_Ignore_Friends") == 1 and target:GetFriendStatus() == "none" or GetConVarNumber(rook.."TriggerBot_Ignore_Friends") == 0 then
+            if GetConVarNumber(rook.."TriggerBot_Ignore_Team") == 1 and target:Team() ~= ply:Team() or GetConVarNumber(rook.."TriggerBot_Ignore_Team") == 0 then
+                if not shooting and target:IsPlayer() then
+					timer.Simple(0.05, function()
+                    RunConsoleCommand("+attack")
+                    shooting = true
+                end)
 			end
+                timer.Simple(0.075, function()
+                    RunConsoleCommand("-attack")
+                    shooting = false
+                end)
+            end
         end
-	end
+    elseif shooting and GetConVarNumber(rook.."TriggerBot") == 1 then
+        RunConsoleCommand("-attack")
+        shooting = false
+    end
 end)
-	
---[[-- Trigger Bot --
-
-hook.Add( "Think", "Triggerbot", function()
-    local EntTrace = ply:GetEyeTrace().Entity
-    if GetConVarNumber(rook.."TriggerBot") == 1 and ( EntTrace:IsPlayer() )  then
-		if GetConVarNumber(rook.."TriggerBot_Ignore_Friends") == 1 and v:IsPlayer() and v:GetFriendStatus() == "none" or GetConVarNumber(rook.."TriggerBot_Ignore_Friends") == 0 then 
-			if GetConVarNumber(rook.."TriggerBot_Ignore_Team") == 1 and v:IsPlayer() and v:Team() ~= ply:Team() or GetConVarNumber(rook.."TriggerBot_Ignore_Team") == 0 then 
-				if shooting and ( EntTrace:IsPlayer() ) then
-					RunConsoleCommand( "-attack" ) 
-					shooting = false
-				elseif !shooting and ( EntTrace:IsPlayer() ) then
-					RunConsoleCommand( "+attack" ) 
-					shooting = true
-				end
-			end
-		end
-	end
-	if GetConVarNumber(rook.."TriggerBot") == 0 then
-		RunConsoleCommand( "-attack" )
-	end
-end)]]
 
 -- Custom Crosshair --
 
@@ -500,6 +500,7 @@ hook.Add( "HUDPaint", "CrossHair", function()
 		RunConsoleCommand( "hud_draw_fixed_reticle", "0" )
 		local h = ScrH() / 2
 		local w = ScrW() / 2
+		
 		if GetConVarNumber("Crosshair_Style") == 1 then
 			surface.SetDrawColor(crosshair_r:GetInt(), crosshair_g:GetInt(), crosshair_b:GetInt(), crosshair_a:GetInt())
 			surface.DrawLine( w + crosshair_size:GetInt(), h, w - crosshair_size:GetInt(), h )
@@ -513,17 +514,34 @@ hook.Add( "HUDPaint", "CrossHair", function()
 	end
 end)
 
+-- Traitor Detector --
+
+hook.Add( "HUDPaint", "TTT", function()
+	if (GetConVarNumber(rook.."TTT") == 1) then
+		for k, v in pairs ( player.GetAll() ) do
+			if UtilityCheck(v) == true then
+				if v:HasWeapon("weapon_ttt_knife") or string.find(v:HasWeapon(), "traitor") or v:HasWeapon("(Disguise)") or v:HasWeapon("Discombobulator") or v:HasWeapon("weapon_ttt_silencedsniper") or v:HasWeapon("weapon_ttt_turtlenade") or v:HasWeapon("weapon_ttt_death_station") or v:HasWeapon("weapon_ttt_sg552") or v:HasWeapon("weapon_ttt_tripmine") or v:HasWeapon("weapon_ttt_sipistol") or v:HasWeapon("weapon_ttt_newtonlauncher") or v:HasWeapon("weapon_ttt_c4") or v:HasWeapon("spiderman's_swep") or v:HasWeapon("weapon_ttt_trait_defilibrator") or v:HasWeapon("weapon_ttt_xbow") or v:HasWeapon("weapon_ttt_dhook") or v:HasWeapon("weapon_awp") or v:HasWeapon("weapon_ttt_ak47") or v:HasWeapon("weapon_jihadbomb") or v:HasWeapon("weapon_ttt_decoy") or v:HasWeapon("weapon_ttt_flaregun") or v:HasWeapon("weapon_ttt_phammer") or v:HasWeapon("weapon_ttt_push") or v:HasWeapon("weapon_ttt_radio") or v:HasWeapon("weapon_ttt_teleport") or v:HasWeapon("weapon_ttt_awp") or v:HasWeapon("weapon_real_cs_g3sg1") or v:HasWeapon("weapon_ttt_healthstation5") or v:HasWeapon("weapon_ttt_cvg_g3sg1") or v:HasWeapon("weapon_ttt_g3sg1") or v:HasWeapon("weapon_ttt_sentry") or v:HasWeapon("weapon_ttt_poison_dart") or v:HasWeapon("weapon_ttt_trait_defibrillator") then
+					local plyName = v:Nick()
+					local plyPos = v:GetPos()
+					local plyinfopos = ( plyPos + Vector( 0, 0, 90 )):ToScreen()
+					draw.SimpleTextOutlined("[Traitor] "..v:GetName(), "BigTextForHUD", 5, 500+(k*10)-k, Color(255, 0, 0), TEXT_ALIGN_LEFT, 1, 1, Color( 0, 0, 0 ) )
+				end
+			end
+		end
+	end
+end)
+
 -- Murder Detector --
 
 hook.Add( "HUDPaint", "Murder", function()
-	if (GetConVarNumber(rook.."Murder") == 1) and engine.ActiveGamemode() == "murder" then
+	if (GetConVarNumber(rook.."Murder") == 1) then
 		for k, v in pairs ( player.GetAll() ) do
 			if UtilityCheck(v) == true then
 				if v:HasWeapon("weapon_mu_knife") then
 					local plyName = v:Nick()
 					local plyPos = v:GetPos()
 					local plyinfopos = ( plyPos + Vector( 0, 0, 90 )):ToScreen()
-					draw.SimpleTextOutlined("[Murderer] "..v:GetName(), "BigTextForHUD", 0, 800 + ( k * 20 ), Color(255, 0, 0), TEXT_ALIGN_LEFT, 1, 1, Color( 0, 0, 0 ) )
+					draw.SimpleTextOutlined("[Murderer] "..v:GetName(), "BigTextForHUD", 5, 500+(k*10)-k, Color(255, 0, 0), TEXT_ALIGN_LEFT, 1, 1, Color( 0, 0, 0 ) )
 				end
 			end
 		end
@@ -541,19 +559,40 @@ hook.Add( "HUDPaint", "PlayerInfo", function()
 					local plyName = v:Nick()
 					local plyPos = v:GetPos()
 					local plyinfopos = ( plyPos + Vector( 0, 0, 90 )):ToScreen()
-					draw.SimpleTextOutlined( plyName, "TargetID", plyinfopos.x, plyinfopos.y - 50, team.GetColor(v:Team()), 1, 1, 1, Color( 0, 0, 0 ) )
-					local plyDistance = "Distance: "..math.Round(((ply:GetPos():Distance( v:GetPos()))))
-					draw.SimpleTextOutlined( plyDistance, "PlayerInfoText", plyinfopos.x, plyinfopos.y - 16, team.GetColor(v:Team()), 1, 1, 1, Color( 0, 0, 0 ) )
+					if ESPColorStyle == 1 then
+						local plyDistance = "Distance: "..math.Round(((ply:GetPos():Distance( v:GetPos()))))
+						draw.SimpleText( plyDistance, "PlayerInfoText", plyinfopos.x, plyinfopos.y - 8, team.GetColor(v:Team()), 1, 1, 1, Color( 0, 0, 0 ) )
+						draw.SimpleText( plyName, "SmallTextForHUD", plyinfopos.x, plyinfopos.y - 50, team.GetColor(v:Team()), 1, 1, 1, Color( 0, 0, 0 ) )
+					elseif ESPColorStyle == 2 then
+						local plyDistance = "Distance: "..math.Round(((ply:GetPos():Distance( v:GetPos()))))
+						draw.SimpleText( plyDistance, "PlayerInfoText", plyinfopos.x, plyinfopos.y - 8, team.GetColor(v:Team()), 1, 1, 1, Color( 0, 0, 0 ) )
+						draw.SimpleText( plyName, "SmallTextForHUD", plyinfopos.x, plyinfopos.y - 50, team.GetColor(v:Team()), 1, 1, 1, Color( 0, 0, 0 ) )
+					else
+						local time = CurTime()
+						local speed = 1
+						local offset = 0
+						local lightness = 255
+						local base_value = time * speed + offset
+						local r = ( 0.5 * (math.sin(base_value - 2)	+ 1) ) * lightness
+						local g = ( 0.5 * (math.sin(base_value + 2)	+ 1) ) * lightness
+						local b = ( 0.5 * (math.sin(base_value)		+ 1) ) * lightness
+						local color = Color(r, g, b, 255)
+						draw.SimpleText( plyName, "SmallTextForHUD", plyinfopos.x, plyinfopos.y - 50, color, 1, 1, 1, Color( 0, 0, 0 ) )
+						local plyDistance = "Distance: "..math.Round(((ply:GetPos():Distance( v:GetPos()))))
+						draw.SimpleText( plyDistance, "PlayerInfoText", plyinfopos.x, plyinfopos.y - 8, color, 1, 1, 1, Color( 0, 0, 0 ) )
+					end
+					local job = team.GetName(v:Team())
+					draw.SimpleText( job, "PlayerInfoText", plyinfopos.x, plyinfopos.y - 24, team.GetColor(v:Team()), 1, 1, 1, Color( 0, 0, 0 ) )
 					local plyGroup = "Rank: " .. v:GetUserGroup()
-					draw.SimpleTextOutlined( plyGroup, "PlayerInfoText", plyinfopos.x, plyinfopos.y - 32, Color( 255, 255, 255 ), 1, 1, 1, Color( 0, 0, 0 ) )
+					draw.SimpleText( plyGroup, "PlayerInfoText", plyinfopos.x, plyinfopos.y - 32, Color( 255, 255, 255 ), 1, 1, 1, Color( 0, 0, 0 ) )
 					local plyHP = "HP: " .. v:Health() 
-					draw.SimpleTextOutlined( plyHP, "PlayerInfoText", plyinfopos.x, plyinfopos.y - 8, Color( 255, 0, 0 ), 1, 1, 1, Color( 0, 0, 0 ) )
+					draw.SimpleText( plyHP, "PlayerInfoText", plyinfopos.x, plyinfopos.y - 0, Color( 255, 0, 0 ), 1, 1, 1, Color( 0, 0, 0 ) )
 					local plyARMOR = "Armor: " .. v:Armor()
-					draw.SimpleTextOutlined( plyARMOR, "PlayerInfoText", plyinfopos.x, plyinfopos.y - 0, Color( 0, 255, 155 ), 1, 1, 1, Color( 0, 0, 0 ) )
+					draw.SimpleText( plyARMOR, "PlayerInfoText", plyinfopos.x, plyinfopos.y + 8, Color( 0, 255, 155 ), 1, 1, 1, Color( 0, 0, 0 ) )
 					local plySTEAM = "SteamID: " .. v:SteamID()
-					draw.SimpleTextOutlined( plySTEAM, "PlayerInfoText", plyinfopos.x, plyinfopos.y - 39, Color( 255, 255, 255 ), 1, 1, 1, Color( 0, 0, 0 ) )
+					draw.SimpleText( plySTEAM, "PlayerInfoText", plyinfopos.x, plyinfopos.y - 39, Color( 255, 255, 255 ), 1, 1, 1, Color( 0, 0, 0 ) )
 					local plyPING = "Ping: " .. v:Ping()
-					draw.SimpleTextOutlined( plyPING, "PlayerInfoText", plyinfopos.x, plyinfopos.y - 24, Color( 255, 255, 255 ), 1, 1, 1, Color( 0, 0, 0 ) )
+					draw.SimpleText( plyPING, "PlayerInfoText", plyinfopos.x, plyinfopos.y - 16, Color( 255, 255, 255 ), 1, 1, 1, Color( 0, 0, 0 ) )
 				end
 			end
 		end
@@ -561,7 +600,6 @@ hook.Add( "HUDPaint", "PlayerInfo", function()
 end)
 
 -- 2DBoxESP --
-
 local function CornerCords( ent )
 local min, max = ent:OBBMins(), ent:OBBMaxs()
 local findcorners = {
@@ -584,14 +622,67 @@ return minX, minY, maxX, maxY
 end
 hook.Add( "HUDPaint", "2DBoxESP", function()
 	for k,v in pairs ( player.GetAll() ) do
+		local function DrawHABar(ent, x, y, w, h)
+			local health = ent:Health()
+			local armor = ent:Armor()
+			local maxHealth = ent:GetMaxHealth()
+			local maxArmor = ent:GetMaxArmor()
+			local healthRatio = health / maxHealth
+			local armorRatio = armor / maxArmor
+			local percent = health / 100
+			local apercent = armor / 100
+			if ESPColorStyle == 1 then
+				surface.SetDrawColor(espcolor_r:GetInt(), espcolor_g:GetInt(), espcolor_b:GetInt(), espcolor_a:GetInt())
+			elseif ESPColorStyle == 2 then
+				surface.SetDrawColor(team.GetColor(v:Team()))
+			else
+				local time = CurTime()
+				local speed = 1
+				local offset = 0
+				local lightness = 255
+				local base_value = time * speed + offset
+				local r = ( 0.5 * (math.sin(base_value - 2)	+ 1) ) * lightness
+				local g = ( 0.5 * (math.sin(base_value + 2)	+ 1) ) * lightness
+				local b = ( 0.5 * (math.sin(base_value)		+ 1) ) * lightness
+				surface.SetDrawColor(r, g, b)
+			end
+			surface.DrawOutlinedRect(x, y, w, h)
+			surface.DrawOutlinedRect(x, y+6, w, h)
+			if percent >= 0.5 then
+				surface.SetDrawColor(0, 255 * percent, 0)
+			else
+				surface.SetDrawColor(255 * percent, 0, 0)
+			end
+			if healthRatio >= 1 then
+				surface.DrawRect(x+1, y+1, (w-2)*1, h-2)
+			else 
+				surface.DrawRect(x+1, y+1, (w-2)*healthRatio, h-2)
+			end
+			surface.SetDrawColor(0, 75, 255 * apercent)
+			if armorRatio >= 1 then
+				surface.DrawRect(x+1, y+h+3, (w-2)*1, h-2)
+			else
+				surface.DrawRect(x+1, y+h+3, (w-2)*armorRatio, h-2)
+			end
+		end
 		local plydistance = math.Round((ply:GetPos():Distance( v:GetPos())))
 		if plydistance < renderdist:GetInt() then
 			if GetConVarNumber(rook.."2DBoxESP") == 1 then
 				if UtilityCheck(v) == true then
 					if ESPColorStyle == 1 then
 						surface.SetDrawColor(espcolor_r:GetInt(), espcolor_g:GetInt(), espcolor_b:GetInt(), espcolor_a:GetInt())
-					else
+					elseif ESPColorStyle == 2 then
 						surface.SetDrawColor(team.GetColor(v:Team()))
+					else
+						local time = CurTime()
+						local speed = 1
+						local offset = 0
+						local lightness = 255
+						local base_value = time * speed + offset
+						local r = ( 0.5 * (math.sin(base_value - 2)	+ 1) ) * lightness
+						local g = ( 0.5 * (math.sin(base_value + 2)	+ 1) ) * lightness
+						local b = ( 0.5 * (math.sin(base_value)		+ 1) ) * lightness
+						surface.SetDrawColor(r, g, b)
 					end
 					local x1,y1,x2,y2 = CornerCords(v)
 					surface.DrawLine( x1, y1, math.min( x1 + 500, x2 ), y1 )
@@ -602,6 +693,9 @@ hook.Add( "HUDPaint", "2DBoxESP", function()
 					surface.DrawLine( x1, y2, x1, math.max( y2 - 500, y1 ) )
 					surface.DrawLine( x2, y2, math.max( x2 - 500, x1 ), y2 )
 					surface.DrawLine( x2, y2, x2, math.max( y2 - 500, y1 ) )
+					local barHeight = 5
+                    local barY = y2 + barHeight + 2
+                    DrawHABar(v, x1+.7, barY, x2-x1, barHeight)
 				end
 			end
 		end
@@ -609,7 +703,6 @@ hook.Add( "HUDPaint", "2DBoxESP", function()
 end)
 
 -- 3DBoxESP --
-
 hook.Add("HUDPaint", "3DBoxESP", function()
     for k,v in pairs(player.GetAll()) do
 		local plydistance = math.Round((ply:GetPos():Distance( v:GetPos())))
@@ -624,10 +717,95 @@ hook.Add("HUDPaint", "3DBoxESP", function()
 					cam.Start3D()
 					if ESPColorStyle == 1 then
 						render.DrawWireframeBox( plyPos, Angle( 0, eye.y, 0), feet, head, Color( espcolor_r:GetInt(), espcolor_g:GetInt(), espcolor_b:GetInt(), espcolor_a:GetInt() ) )
+					elseif ESPColorStyle == 2 then
+						render.DrawWireframeBox( plyPos, Angle( 0, eye.y, 0), feet, head, Color(team.GetColor(v:Team())) )
 					else
-						render.DrawWireframeBox( plyPos, Angle( 0, eye.y, 0), feet, head, team.GetColor(v:Team()) )
+						local time = CurTime()
+						local speed = 1
+						local offset = 0
+						local lightness = 255
+						local base_value = time * speed + offset
+						local r = ( 0.5 * (math.sin(base_value - 2)	+ 1) ) * lightness
+						local g = ( 0.5 * (math.sin(base_value + 2)	+ 1) ) * lightness
+						local b = ( 0.5 * (math.sin(base_value)		+ 1) ) * lightness
+						render.DrawWireframeBox( plyPos, Angle( 0, eye.y, 0), feet, head, Color(r, g, b, 255) )
 					end
 					cam.End3D()
+					local function DrawHABar(ent, x, y, w, h)
+						local health = ent:Health()
+						local armor = ent:Armor()
+						local maxHealth = ent:GetMaxHealth()
+						local maxArmor = ent:GetMaxArmor()
+						local healthRatio = health / maxHealth
+						local armorRatio = armor / maxArmor
+						local percent = health / 100
+						local apercent = armor / 100
+						if ESPColorStyle == 1 then
+							surface.SetDrawColor(espcolor_r:GetInt(), espcolor_g:GetInt(), espcolor_b:GetInt(), espcolor_a:GetInt())
+						elseif ESPColorStyle == 2 then
+							surface.SetDrawColor(team.GetColor(v:Team()))
+						else
+							local time = CurTime()
+							local speed = 1
+							local offset = 0
+							local lightness = 255
+							local base_value = time * speed + offset
+							local r = ( 0.5 * (math.sin(base_value - 2)	+ 1) ) * lightness
+							local g = ( 0.5 * (math.sin(base_value + 2)	+ 1) ) * lightness
+							local b = ( 0.5 * (math.sin(base_value)		+ 1) ) * lightness
+							surface.SetDrawColor(r, g, b)
+						end
+						surface.DrawOutlinedRect(x, y, w, h)
+						surface.DrawOutlinedRect(x, y+6, w, h)
+						if percent >= 0.5 then
+							surface.SetDrawColor(0, 255 * percent, 0)
+						else
+							surface.SetDrawColor(255 * percent, 0, 0)
+						end
+						if healthRatio >= 1 then
+							surface.DrawRect(x+1, y+1, (w-2)*1, h-2)
+						else 
+							surface.DrawRect(x+1, y+1, (w-2)*healthRatio, h-2)
+						end
+						surface.SetDrawColor(0, 75, 255 * apercent)
+						if armorRatio >= 1 then
+							surface.DrawRect(x+1, y+h+3, (w-2)*1, h-2)
+						else
+							surface.DrawRect(x+1, y+h+3, (w-2)*armorRatio, h-2)
+						end
+					end
+					local function CornerCords( ent )
+					local min, max = ent:OBBMins(), ent:OBBMaxs()
+					local findcorners = {
+							Vector( min.x, min.y, min.z ),
+							Vector( min.x, min.y, max.z ),
+							Vector( min.x, max.y, min.z ),
+							Vector( min.x, max.y, max.z ),
+							Vector( max.x, min.y, min.z ),
+							Vector( max.x, min.y, max.z ),
+							Vector( max.x, max.y, min.z ),
+							Vector( max.x, max.y, max.z )
+					}
+					local minX, minY, maxX, maxY = ScrW() * 2, ScrH() * 2, 0, 0
+					for _, corner in pairs( findcorners ) do
+							local onScreen = ent:LocalToWorld( corner ):ToScreen()
+							minX, minY = math.min( minX, onScreen.x ), math.min( minY, onScreen.y )
+							maxX, maxY = math.max( maxX, onScreen.x ), math.max( maxY, onScreen.y )
+					end
+					return minX, minY, maxX, maxY
+					end
+					local x1,y1,x2,y2 = CornerCords(v)
+					surface.DrawLine( x1, y1, math.min( x1 + 500, x2 ), y1 )
+					surface.DrawLine( x1, y1, x1, math.min( y1 + 500, y2 ) )
+					surface.DrawLine( x2, y1, math.max( x2 - 500, x1 ), y1 )
+					surface.DrawLine( x2, y1, x2, math.min( y1 + 500, y2 ) )
+					surface.DrawLine( x1, y2, math.min( x1 + 500, x2 ), y2 )
+					surface.DrawLine( x1, y2, x1, math.max( y2 - 500, y1 ) )
+					surface.DrawLine( x2, y2, math.max( x2 - 500, x1 ), y2 )
+					surface.DrawLine( x2, y2, x2, math.max( y2 - 500, y1 ) )
+					local barHeight = 5
+                    local barY = y2 + barHeight + 2
+                    DrawHABar(v, x1+.7, barY, x2-x1, barHeight)
 				end
 			end
 		end
@@ -665,10 +843,20 @@ hook.Add( "HUDPaint", "PropESP", function()
 					render.SuppressEngineLighting( true )
 						if ESPColorStyle == 1 then
 							render.SetColorModulation(espcolor_r:GetInt(), espcolor_g:GetInt(), espcolor_b:GetInt())
+						elseif ESPColorStyle == 2 then
+							render.SetColorModulation(255, 255, 255)
 						else
-							render.SetColorModulation( 255, 255, 255)
+							local time = CurTime()
+							local speed = 1
+							local offset = 0
+							local lightness = 255
+							local base_value = time * speed + offset
+							local r = ( 0.5 * (math.sin(base_value - 2)	+ 1) ) * lightness
+							local g = ( 0.5 * (math.sin(base_value + 2)	+ 1) ) * lightness
+							local b = ( 0.5 * (math.sin(base_value)		+ 1) ) * lightness
+							render.SetColorModulation(r, g, b)
 						end
-					render.SetBlend(0.01)
+					render.SetBlend(0.03)
 					v:DrawModel()
 					cam.IgnoreZ( false )
 					render.SuppressEngineLighting( false )
@@ -722,29 +910,48 @@ end)
 
 -- Rainbow Physgun --
 
-local OGPhysColor = ply:GetInfo( "cl_weaponcolor" )
+local OGPhysColor = nil
 local Num = 0
+
 local function rainbow()
-	if GetConVarNumber(rook.."rainbowphys") == 1 then
-		Num = Num + 1
-        ply:SetWeaponColor(Vector(math.Rand(0,1),math.Rand(0,1),math.Rand(0,1)))
+	local time = CurTime()
+	local speed = 1
+	local offset = 0
+	local lightness = 1
+	local base_value = time * speed + offset
+	local r = ( 0.5 * (math.sin(base_value - 2)	+ 1) ) * lightness
+	local g = ( 0.5 * (math.sin(base_value + 2)	+ 1) ) * lightness
+	local b = ( 0.5 * (math.sin(base_value)		+ 1) ) * lightness
+    if GetConVarNumber(rook.."rainbowphys") == 1 then
+        Num = Num + 1
+        ply:SetWeaponColor(Vector(r, g, b))
         Num = 0
-	end
+    end
 end
+
+local function toggleRainbowPhys(enabled)
+    if enabled then
+        OGPhysColor = ply:GetWeaponColor()
+        hook.Add("CreateMove", "rainbowphys", rainbow)
+    else
+        hook.Remove("CreateMove", "rainbowphys")
+        if OGPhysColor ~= nil then
+            ply:SetWeaponColor(OGPhysColor)
+            OGPhysColor = nil
+        end
+        Num = 0
+    end
+end
+
 if GetConVarNumber(rook.."rainbowphys") == 1 then
-	hook.Add("Think","rainbowphys",rainbow)
-else
-	hook.Remove("Think","rainbowphys",rainbow)
+    toggleRainbowPhys(true)
 end
+
 cvars.AddChangeCallback(rook.."rainbowphys", function() 
-	if GetConVarNumber(rook.."rainbowphys") == 1 then
-		hook.Add("CreateMove", "rainbowphys", rainbow)
-	else
-		hook.Remove("CreateMove", "rainbowphys")
-	    ply:SetWeaponColor(Vector(OGPhysColor))
-        Num = 0
-	end
+    toggleRainbowPhys(GetConVarNumber(rook.."rainbowphys") == 1)
 end)
+
+-- Name Changer (WIP, COMING SOON!) --
 
 -- Admin List / Spectator List --
 
@@ -753,8 +960,8 @@ hook.Add("HUDPaint", "AdminList", function()
 	if GetConVarNumber(rook.."AdminList") == 1 and GetConVarNumber(rook.."HUD") == 1 then
 		local indent = 0
 		for k, v in pairs(player.GetAll()) do
-			if v:IsAdmin()  or string.find(v:GetUserGroup(), "mod") or string.find(v:GetUserGroup(), "admin") or string.find(v:GetUserGroup(), "staff") then
-				draw.SimpleTextOutlined("["..v:GetUserGroup().."] "..v:GetName(), "BigTextForHUD", 0, 325+indent, Color(255, 102, 102), TEXT_ALIGN_LEFT, 1, 1, Color( 0, 0, 0 ) )
+			if PermissionCheck(v) == true then
+				draw.SimpleTextOutlined("["..v:GetUserGroup().."] "..v:GetName(), "BigTextForHUD", 5, 350+indent, Color(255, 102, 102), TEXT_ALIGN_LEFT, 1, 1, Color( 0, 0, 0 ) )
 				indent = indent +30
 			end
 		end
@@ -764,8 +971,6 @@ end)
 
 -- Entity ESP --
 
-local EntsToShow = {}
-local OtherEnts = {}
 table.Empty(OtherEnts)
 hook.Add("Think", "EntTrack", function()
 	for k,v in pairs(ents.GetAll()) do
@@ -873,6 +1078,7 @@ hook.Add("CalcView", tostring(math.random(666, 1221312)), CalcView)
 
 -- //GUI and Menu\\ --
 -- Use: Okay so most people do this at the top, but I did this last and it makes more sense judging by the way I ordered my bloody thing, so leave me alone. -- 
+	
 concommand.Add( "Rook_Menu", function()
     local DP = vgui.Create( "DFrame" )
 	DP.SetSkin(SKIN)
@@ -883,6 +1089,7 @@ concommand.Add( "Rook_Menu", function()
     DP:MakePopup()
     DP:Center()
 	DP:ShowCloseButton( false )
+	DP:SetSkin("Default")
 	DP.Paint = function( self, w, h ) 
 		DrawBlur(self, 3)
 		draw.RoundedBox( 0, 0, 0, w, h, Color( 0, 0, 0, 155 ) )
@@ -1085,14 +1292,20 @@ local x = vgui.Create( "DImageButton", DP )
     SelectedEnts:SetPos(0, 0)
     SelectedEnts:SetMultiSelect(false)
     SelectedEnts:AddColumn("Shown Entities")
-    for k,v in pairs(EntsToShow) do SelectedEnts:AddLine(v) end
+    for k,v in pairs(EntsToShow) do 
+		SelectedEnts:AddLine(v) 
+	end
     DermaList:Add(SelectedEnts)
     local AllEnts = vgui.Create("DListView")
     AllEnts:SetSize(125, 205)
     AllEnts:SetPos(150, 0)
     AllEnts:SetMultiSelect(false)
     AllEnts:AddColumn("Hidden Entities")
-    for k,v in pairs(OtherEnts) do AllEnts:AddLine(v) end
+    for k,v in pairs(OtherEnts) do 
+		if not table.HasValue( EntsToShow, v ) then
+			AllEnts:AddLine(v) 
+		end
+	end
     DermaList:Add(AllEnts)
     AllEnts.DoDoubleClick = function(parent, index, list)
         local v = OtherEnts[index]
@@ -1103,35 +1316,55 @@ local x = vgui.Create( "DImageButton", DP )
     end
     SelectedEnts.DoDoubleClick = function(parent, index, list)
         local v = EntsToShow[index]
-        table.insert(OtherEnts, EntsToShow[index])
+		if not table.HasValue( OtherEnts, v ) then
+        	table.insert(OtherEnts, EntsToShow[index])
+		end
         table.remove(EntsToShow, index)
-
         AllEnts:AddLine(v)
         parent:RemoveLine(index)
     end
-	
 	local Aimcheat1 = vgui.Create( "DCheckBoxLabel", panel3 )
-	Aimcheat1:SetPos( 10,40 )
+	Aimcheat1:SetPos( 10,10 )
 	Aimcheat1:SetText( "Aimbot" )
 	Aimcheat1:SetConVar( rook.."Aimbot" )
 	Aimcheat1:SizeToContents()
 	local Aimcheat2 = vgui.Create( "DCheckBoxLabel", panel3 )
-	Aimcheat2:SetPos( 30,60 )
-	Aimcheat2:SetText( "Aimbot Ignore Friends" )
+	Aimcheat2:SetPos( 30,30 )
+	Aimcheat2:SetText( "Ignore Friends" )
 	Aimcheat2:SetConVar( rook.."Aimbot_Ignore_Friends" )
 	Aimcheat2:SizeToContents()
 	local Aimcheat3 = vgui.Create( "DCheckBoxLabel", panel3 )
-	Aimcheat3:SetPos( 30,80 )
-	Aimcheat3:SetText( "Aimbot Ignore Team" )
+	Aimcheat3:SetPos( 30,50 )
+	Aimcheat3:SetText( "Ignore Team" )
 	Aimcheat3:SetConVar( rook.."Aimbot_Ignore_Team" )
 	Aimcheat3:SizeToContents()
 	local Aimcheat4 = vgui.Create( "DCheckBoxLabel", panel3 )
-	Aimcheat4:SetPos( 10,100 )
-	Aimcheat4:SetText( "FOV Aimbot" )
-	Aimcheat4:SetConVar( rook.."FOVAimbot" )
+	Aimcheat4:SetPos( 30,70 )
+	Aimcheat4:SetText( "Ignore Through Walls" )
+	Aimcheat4:SetConVar( rook.."Aimbot_Ignore_Through_Walls" )
 	Aimcheat4:SizeToContents()
+	local Aimcheat5 = vgui.Create( "DCheckBoxLabel", panel3 )
+	Aimcheat5:SetPos( 30,90 )
+	Aimcheat5:SetText( "Ignore Staff" )
+	Aimcheat5:SetConVar( rook.."Aimbot_Ignore_Staff" )
+	Aimcheat5:SizeToContents()
+	local Aimcheat6 = vgui.Create( "DCheckBoxLabel", panel3 )
+	Aimcheat6:SetPos( 30,110 )
+	Aimcheat6:SetText( "Ignore Ghosts" )
+	Aimcheat6:SetConVar( rook.."Aimbot_Ignore_Ghosts" )
+	Aimcheat6:SizeToContents()
+	local Aimcheat7 = vgui.Create( "DCheckBoxLabel", panel3 )
+	Aimcheat7:SetPos( 30,130 )
+	Aimcheat7:SetText( "Whitelist" )
+	Aimcheat7:SetConVar( rook.."Aimbot_Whitelist" )
+	Aimcheat7:SizeToContents()
+	local Aimcheat8 = vgui.Create( "DCheckBoxLabel", panel3 )
+	Aimcheat8:SetPos( 380,10 )
+	Aimcheat8:SetText( "Aim Assist" )
+	Aimcheat8:SetConVar( rook.."FOVAimbot" )
+	Aimcheat8:SizeToContents()
 	local AimBoneSelector = vgui.Create( "DComboBox", panel3 )
-	AimBoneSelector:SetPos( 10, 10 )
+	AimBoneSelector:SetPos( 200, 10 )
 	AimBoneSelector:SetSize( 150, 20 )
 	AimBoneSelector:SetValue( "Aimbot Bone Selector" )
 	AimBoneSelector:AddChoice( "Head" )
@@ -1145,21 +1378,152 @@ local x = vgui.Create( "DImageButton", DP )
 	AimBoneSelector.OnSelect = function( self, index, value )
 		AimBoneType = ( index )
 	end
-	--local Aimcheat5 = vgui.Create( "DCheckBoxLabel", panel3 )
-	--Aimcheat5:SetPos( 195,10 )
-	--Aimcheat5:SetText( "Trigger Bot" )
-	--Aimcheat5:SetConVar( rook.."TriggerBot" )
-	--Aimcheat5:SizeToContents()
-	--local Aimcheat6 = vgui.Create( "DCheckBoxLabel", panel3 )
-	--Aimcheat6:SetPos( 215,30 )
-	--Aimcheat6:SetText( "Trigger Bot Ignore Friends" )
-	--Aimcheat6:SetConVar( rook.."TriggerBot_Ignore_Friends" )
-	--Aimcheat6:SizeToContents()
-	--local Aimcheat7 = vgui.Create( "DCheckBoxLabel", panel3 )
-	--Aimcheat7:SetPos( 215,50 )
-	--Aimcheat7:SetText( "Trigger Bot Ignore Team" )
-	--Aimcheat7:SetConVar( rook.."TriggerBot_Ignore_Team" )
-	--Aimcheat7:SizeToContents()
+
+	local DermaList = vgui.Create( "DPanelList", panel3 )
+	DermaList:SetPos( 200,31 )
+	DermaList:SetSize( 200, 250 )
+	DermaList:SetSpacing( 75 )
+	DermaList:EnableHorizontal( false )
+	DermaList:EnableVerticalScrollbar( true )
+
+	-- Aimbot --
+
+	SelectedPlayers = vgui.Create("DListView")
+	SelectedPlayers:SetSize(75, 125)
+	SelectedPlayers:SetPos(0, 0)
+	SelectedPlayers:SetMultiSelect(false)
+	SelectedPlayers:AddColumn("Whitelisted")
+		
+	local AllPlayers = vgui.Create("DListView")
+	AllPlayers:SetSize(75, 125)
+	AllPlayers:SetPos(75, 0)
+	AllPlayers:SetMultiSelect(false)
+	AllPlayers:AddColumn("Players")
+	
+	-- Iterate through OtherPlayers table and add eligible players to AllPlayers list
+	for _, v in pairs(player.GetAll()) do
+		if UtilityCheck(v) == true and not table.HasValue( NoShootGuys, v ) then
+			local line = AllPlayers:AddLine(v:Nick())
+			line.player = v -- attach player object to list item
+		end
+	end
+	
+	AllPlayers.DoDoubleClick = function(parent, index, list)
+		local line = parent:GetLine(index)
+		local player = line.player -- retrieve player object from line
+		table.insert(NoShootGuys, player) -- add player to NoShootGuys table
+		table.remove(OtherPlayers, table.KeyFromValue(OtherPlayers, player))
+		line.player = nil
+		local selectedLine = SelectedPlayers:AddLine(player:Nick())
+		selectedLine.player = player -- attach player object to new line
+		parent:RemoveLine(index)
+	end
+	
+	for _, v in pairs(NoShootGuys) do
+		if UtilityCheck(v) == true and not table.HasValue( OtherPlayers, v ) then
+			local line = SelectedPlayers:AddLine(v:Nick())
+			line.player = v -- attach player object to list item
+		end
+	end
+
+	SelectedPlayers.DoDoubleClick = function(parent, index, list)
+		local line = parent:GetLine(index)
+		local player = line.player
+		table.insert(OtherPlayers, player) -- add player to OtherPlayers table
+		table.remove(NoShootGuys, table.KeyFromValue(NoShootGuys, player))
+		line.player = nil
+		local allLine = AllPlayers:AddLine(player:Nick())
+		allLine.player = player -- attach player object to new line
+		parent:RemoveLine(index)
+	end
+	hook.Add( "Think", "ThinkAboutIt", function()
+		if AimBoneType == 1 then
+			AimBone = ("ValveBiped.Bip01_Head1")
+		end
+		if AimBoneType == 2 then
+			AimBone = ("ValveBiped.Bip01_Neck1")
+		end
+		if AimBoneType == 3 then
+			AimBone = ("ValveBiped.Bip01_Spine")
+		end
+		if AimBoneType == 4 then
+			AimBone = ("ValveBiped.Bip01_L_Forearm")
+		end
+		if AimBoneType == 5 then
+			AimBone = ("ValveBiped.Bip01_R_UpperArm")
+		end
+		if AimBoneType == 6 then
+			AimBone = ("ValveBiped.Bip01_Pelvis")
+		end
+		if AimBoneType == 7 then
+			AimBone = ("ValveBiped.Bip01_L_Calf")
+		end
+		if AimBoneType == 8 then
+			AimBone = ("ValveBiped.Bip01_R_Calf")
+		end
+		local Target = nil
+		local NearestTargetDist = math.huge
+  	 	if GetConVarNumber(rook.."Aimbot") == 1 then
+			if input.IsButtonDown(AimKey) and ply:IsTyping() == false then
+				for k, v in pairs( player.GetAll() ) do
+					if UtilityCheck(v) == true then
+						local TargetDist = ( Vector( ply:GetPos() ):Distance( Vector( v:GetPos() ) ) )
+						if TargetDist > 0 and TargetDist < NearestTargetDist then
+							if GetConVarNumber(rook.."Aimbot_Ignore_Friends") == 1 and v:IsPlayer() and v:GetFriendStatus() == "none" or GetConVarNumber(rook.."Aimbot_Ignore_Friends") == 0 then 
+								if GetConVarNumber(rook.."Aimbot_Ignore_Staff") == 1 and PermissionCheck(v) == false or GetConVarNumber(rook.."Aimbot_Ignore_Staff") == 0 then
+									if GetConVarNumber(rook.."Aimbot_Ignore_Ghosts") == 1 and GhostCheck(v) == false or GetConVarNumber(rook.."Aimbot_Ignore_Ghosts") == 0 then
+										if GetConVarNumber(rook.."Aimbot_Ignore_Team") == 1 and v:IsPlayer() and v:Team() ~= ply:Team() or GetConVarNumber(rook.."Aimbot_Ignore_Team") == 0 then 
+											local trace = util.TraceLine( {
+												start = ply:GetShootPos(),
+												endpos = v:GetPos(),
+												filter = function( ent ) if ( ent:GetClass() == "prop_physics" ) then return true end end
+											} )
+											if trace and (GetConVarNumber(rook.."Aimbot_Ignore_Through_Walls") == 1 and trace.Fraction == 1 or GetConVarNumber(rook.."Aimbot_Ignore_Through_Walls") == 0) then
+												if GetConVarNumber(rook.."Aimbot_Whitelist") == 1 and not table.HasValue(NoShootGuys, v) or GetConVarNumber(rook.."Aimbot_Whitelist") == 0 then
+													NearestTargetDist = TargetDist
+													if NearestTargetDist == TargetDist then
+														Target = v
+													end
+													if Target ~= nil then
+														if Target:LookupBone(AimBone) == nil then
+															local TargetBody = Target:GetPos() + Vector( 0, 0, 35 )
+															ply:SetEyeAngles((TargetBody - ply:GetShootPos()):Angle())
+														else 
+															local TargetHead = Target:LookupBone(AimBone)
+															local TargetHeadPos,TargetHeadAng = Target:GetBonePosition(TargetHead)
+															ply:SetEyeAngles((TargetHeadPos - ply:GetShootPos()):Angle())
+														end
+													end
+												end
+											end
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end)
+	DermaList:Add(SelectedPlayers)
+	DermaList:Add(AllPlayers)
+
+	local Aimcheat7 = vgui.Create( "DCheckBoxLabel", panel3 )
+	Aimcheat7:SetPos( 380,30 )
+	Aimcheat7:SetText( "Trigger Bot" )
+	Aimcheat7:SetConVar( rook.."TriggerBot" )
+	Aimcheat7:SizeToContents()
+	local Aimcheat8 = vgui.Create( "DCheckBoxLabel", panel3 )
+	Aimcheat8:SetPos( 380,50 )
+	Aimcheat8:SetText( "Trigger Bot Ignore Friends" )
+	Aimcheat8:SetConVar( rook.."TriggerBot_Ignore_Friends" )
+	Aimcheat8:SizeToContents()
+	local Aimcheat9 = vgui.Create( "DCheckBoxLabel", panel3 )
+	Aimcheat9:SetPos( 380,70 )
+	Aimcheat9:SetText( "Trigger Bot Ignore Team" )
+	Aimcheat9:SetConVar( rook.."TriggerBot_Ignore_Team" )
+	Aimcheat9:SizeToContents()
 	
 	local binder = vgui.Create( "DBinder", panel3 )
 	binder:SetSize( 560, 35 )
@@ -1200,8 +1564,9 @@ local x = vgui.Create( "DImageButton", DP )
 	FOVSlider:SetSize( 190, 25 )
 	FOVSlider:SetText( "FOV" )
 	FOVSlider:SetMin( 10 )
-	FOVSlider:SetMax( 179 )
+	FOVSlider:SetMax( 160 )
 	FOVSlider:SetDecimals( 0 )
+	FOVSlider:SetValue( 120 )
 	FOVSlider:SetConVar( "FOVSlider" )
 	local Misccheat6 = vgui.Create( "DCheckBoxLabel", panel4 )
 	Misccheat6:SetPos( 195,10 )
@@ -1250,6 +1615,7 @@ local x = vgui.Create( "DImageButton", DP )
 	SliderAlpha:SetMin( 50 )
 	SliderAlpha:SetMax( 255 )
 	SliderAlpha:SetDecimals( 0 )
+	SliderAlpha:SetValue( 255 )
 	SliderAlpha:SetConVar( "Crosshair_A" )
 	local SliderSize = vgui.Create( "DNumSlider", panel4 )
 	SliderSize:SetPos( 380, 110 )
@@ -1258,14 +1624,16 @@ local x = vgui.Create( "DImageButton", DP )
 	SliderSize:SetMin( 1 )
 	SliderSize:SetMax( 255 )
 	SliderSize:SetDecimals( 0 )
+	SliderSize:SetValue( 5 )
 	SliderSize:SetConVar( "Crosshair_Size" )
 	local SliderStyle = vgui.Create( "DNumSlider", panel4 )
 	SliderStyle:SetPos( 380, 130 )
 	SliderStyle:SetSize( 190, 25 )
 	SliderStyle:SetText( "Style" )
-	SliderStyle:SetMin( 0 )
+	SliderStyle:SetMin( 1 )
 	SliderStyle:SetMax( 2 )
 	SliderStyle:SetDecimals( 0 )
+	SliderStyle:SetValue( 1 )
 	SliderStyle:SetConVar( "Crosshair_Style" )
 
 	local Chatcheat1 = vgui.Create( "DCheckBoxLabel", panel5 )
@@ -1295,14 +1663,21 @@ local x = vgui.Create( "DImageButton", DP )
 	GamemodeCheat1:SetText( "Murderer Detector" )
 	GamemodeCheat1:SetConVar( rook.."Murder" )
 	GamemodeCheat1:SizeToContents()
+
+	local GamemodeCheat2 = vgui.Create( "DCheckBoxLabel", panel6 )
+	GamemodeCheat2:SetPos( 10,30 )
+	GamemodeCheat2:SetText( "Traitor Detector" )
+	GamemodeCheat2:SetConVar( rook.."TTT" )
+	GamemodeCheat2:SizeToContents()
 	
 	local RenderDistance = vgui.Create( "DNumSlider", panel7 )
 	RenderDistance:SetPos( 10, 50 )
 	RenderDistance:SetSize( 190, 25 )
 	RenderDistance:SetText( "Render Distance" )
 	RenderDistance:SetMin( 500 )
-	RenderDistance:SetMax( 10000 )
+	RenderDistance:SetMax( 50000 )
 	RenderDistance:SetDecimals( 0 )
+	RenderDistance:SetValue( 5000 )
 	RenderDistance:SetConVar( "RenderDistance" )
 	local DComboBox = vgui.Create( "DComboBox", panel7 )
 	DComboBox:SetPos( 195, 50 )
@@ -1310,6 +1685,7 @@ local x = vgui.Create( "DImageButton", DP )
 	DComboBox:SetValue( "Color Style" )
 	DComboBox:AddChoice( "Custom Colors" )
 	DComboBox:AddChoice( "Group Colors" )
+	DComboBox:AddChoice( "Rainbow Colors" )
 	DComboBox.OnSelect = function( self, index, value )
 		ESPColorStyle = ( index )
 	end
@@ -1344,6 +1720,7 @@ local x = vgui.Create( "DImageButton", DP )
 	ESPColorAlpha:SetMin( 50 )
 	ESPColorAlpha:SetMax( 255 )
 	ESPColorAlpha:SetDecimals( 0 )
+	ESPColorAlpha:SetValue( 255 )
 	ESPColorAlpha:SetConVar( "ESPColor_A" )
 	local configmsg = vgui.Create( "HTML" ) 
 	configmsg:SetParent( panel7 )
