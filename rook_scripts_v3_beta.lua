@@ -4,7 +4,7 @@ return d:ConsoleMessage([[RUNLUA:
 -- // Startup Parameters \\ --
 -- Use: Getting everything localized and ready for action --
 if (SERVER) then return end 
-local version = ("v3 BETA") 
+local version = ("v3") 
 local client = ("Rook Scripts "..version)
 local ply = LocalPlayer() 
 local ESPColorStyle = ESPColorStyle or 1 
