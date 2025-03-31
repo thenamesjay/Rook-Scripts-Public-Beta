@@ -1,6 +1,6 @@
 RookScripts
 Made & Developed by IncoDG (Members: Jay & Hedges)
-Official Workshop Page: https://steamcommunity.com/sharedfiles/filedetails/?id=1100714215
+Official Workshop Page: https://steamcommunity.com/sharedfiles/filedetails/?id=1100714215 <--- Deleted by Steam Admins :(
 
 NOTE: This is the PUBLIC BETA! Things may be buggy / unfinished!
 
